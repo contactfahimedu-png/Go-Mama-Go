@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fahim Survival Mobile</title>
+<title>Fahim Survival Pro</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{
@@ -19,7 +19,7 @@ background: linear-gradient(to bottom, #87ceeb 0%, #f0f8ff 100%);
 .airplane{
 position:absolute;
 top:0;
-font-size:6vw; /* scaled for mobile */
+font-size:6vw;
 opacity:0.8;
 animation:airplaneMove linear infinite;
 }
@@ -43,8 +43,8 @@ font-size:4vw;
 position:absolute;
 border-radius:50%;
 box-shadow:0 0 20px cyan;
-width:12vw; /* mobile responsive */
-touch-action:none; /* important for dragging */
+width:12vw;
+touch-action:none;
 }
 
 .enemy, .health, .minus{
@@ -53,7 +53,6 @@ border-radius:50%;
 animation-name:fall;
 animation-timing-function:linear;
 }
-
 .enemy{width:10vw;}
 .health, .minus{width:8vw;}
 
@@ -101,6 +100,25 @@ margin:1vh 0;
 font-size:6vw;
 }
 
+/* Navigation buttons */
+.navButtons{
+position:fixed;
+bottom:2vh;
+left:50%;
+transform:translateX(-50%);
+display:flex;
+gap:2vw;
+z-index:999;
+}
+
+.navButtons button{
+padding:2vh 3vw;
+border-radius:15px;
+background:#00bfff;
+font-size:4vw;
+color:white;
+}
+
 </style>
 </head>
 <body>
@@ -122,6 +140,14 @@ font-size:6vw;
 </div>
 
 <img src="fahim.png" id="player">
+
+<!-- Navigation buttons -->
+<div class="navButtons">
+<button onclick="movePlayer('left')">⬅️</button>
+<button onclick="movePlayer('up')">⬆️</button>
+<button onclick="movePlayer('down')">⬇️</button>
+<button onclick="movePlayer('right')">➡️</button>
+</div>
 
 <div id="overlay">
 <h1>💀 Game Over</h1>
@@ -151,15 +177,18 @@ const bgMusic=document.getElementById("bgMusic");
 bgMusic.volume=0.3;
 const baseFallDuration=6;
 
-// --------- MOBILE TOUCH DRAG ---------
+// Set player starting position: center bottom-ish
+function setPlayerStart(){
+    player.style.left = (window.innerWidth/2 - player.offsetWidth/2) + "px";
+    player.style.top = (window.innerHeight*0.75) + "px";
+}
+
+// Mobile touch drag
 let dragging=false;
 player.addEventListener('touchstart',(e)=>{
-    dragging=true;
-    e.preventDefault();
+    dragging=true; e.preventDefault();
 });
-player.addEventListener('touchend',(e)=>{
-    dragging=false;
-});
+player.addEventListener('touchend',(e)=>{dragging=false;});
 player.addEventListener('touchmove',(e)=>{
     if(!dragging) return;
     let touch=e.touches[0];
@@ -168,17 +197,33 @@ player.addEventListener('touchmove',(e)=>{
     e.preventDefault();
 });
 
-// Also support mouse for PC
+// PC mouse drag
 document.addEventListener("mousemove",(e)=>{
-    if(!gameActive) return;
+    if(!dragging || !gameActive) return;
     player.style.left = e.pageX - player.offsetWidth/2 + "px";
     player.style.top = e.pageY - player.offsetHeight/2 + "px";
 });
 
+// Navigation button control
+function movePlayer(dir){
+    const step = 15; // pixels per click
+    let left = player.offsetLeft;
+    let top = player.offsetTop;
+    if(dir==='left') left -= step;
+    if(dir==='right') left += step;
+    if(dir==='up') top -= step;
+    if(dir==='down') top += step;
+    // Keep player inside window
+    left=Math.max(0, Math.min(window.innerWidth - player.offsetWidth, left));
+    top=Math.max(0, Math.min(window.innerHeight - player.offsetHeight, top));
+    player.style.left = left+"px";
+    player.style.top = top+"px";
+}
+
 function startGame(){
     document.getElementById("startScreen").style.display="none";
-    player.style.display="block";
     gameActive=true;
+    setPlayerStart();
     bgMusic.play();
     spawnEnemy();
     spawnHealth();
@@ -192,13 +237,14 @@ function getSpeedMultiplier(){
     return 1;
 }
 
-// Enemy (-1 life)
+// ---------- SPAWN FUNCTIONS ---------------
+// Reduced bomb count by increasing spawn delay
 function spawnEnemy(){
     if(!gameActive) return;
     let enemy=document.createElement("img");
     enemy.src="fahim2.png";
     enemy.className="enemy";
-    enemy.style.left=Math.random()*(window.innerWidth - enemy.offsetWidth) + "px";
+    enemy.style.left=Math.random()*(window.innerWidth - 100)+"px";
     let duration = baseFallDuration/getSpeedMultiplier();
     enemy.style.animationDuration = duration+"s";
     document.body.appendChild(enemy);
@@ -220,16 +266,15 @@ function spawnEnemy(){
         }
     },duration*1000);
 
-    setTimeout(spawnEnemy, 900);
+    setTimeout(spawnEnemy, 2000); // Fewer bombs
 }
 
-// Health (+1 life)
 function spawnHealth(){
     if(!gameActive) return;
     let item=document.createElement("img");
     item.src="health.png";
     item.className="health";
-    item.style.left=Math.random()*(window.innerWidth- item.offsetWidth)+"px";
+    item.style.left=Math.random()*(window.innerWidth-60)+"px";
     let duration = 5;
     item.style.animationDuration = duration+"s";
     document.body.appendChild(item);
@@ -247,16 +292,15 @@ function spawnHealth(){
         clearInterval(check);
     }, duration*1000);
 
-    setTimeout(spawnHealth, 7000);
+    setTimeout(spawnHealth, 8000);
 }
 
-// Minus (instant game over)
 function spawnMinus(){
     if(!gameActive) return;
     let item=document.createElement("img");
     item.src="minus.png";
     item.className="minus";
-    item.style.left=Math.random()*(window.innerWidth- item.offsetWidth)+"px";
+    item.style.left=Math.random()*(window.innerWidth-60)+"px";
     let duration = 5;
     item.style.animationDuration = duration+"s";
     document.body.appendChild(item);
@@ -274,16 +318,15 @@ function spawnMinus(){
         clearInterval(check);
     }, duration*1000);
 
-    setTimeout(spawnMinus, 10000);
+    setTimeout(spawnMinus, 12000);
 }
 
-// LIFE FUNCTIONS
+// -------- LIFE & COLLISION ----------
 function gainLife(){
     if(lives<maxLives){
         lives++;
         document.getElementById("lives").innerText=lives;
-        healthSound.currentTime=0;
-        healthSound.play();
+        healthSound.currentTime=0; healthSound.play();
     }
 }
 
@@ -301,7 +344,6 @@ function minusHit(){
     endGame();
 }
 
-// Collision detection
 function checkCollision(a,b){
     let r1=a.getBoundingClientRect();
     let r2=b.getBoundingClientRect();
